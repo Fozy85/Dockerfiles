@@ -1,19 +1,28 @@
-# Wouldn't we want a later version for fewer vulnerabilities and dependency issues?
-# This is why setuptools is upgraded.
-FROM python:3.8
+# Note Will need to migrate to Amazon Linux 2023 by mid-2025
+# https://aws.amazon.com/amazon-linux-2/faqs/
+FROM amazonlinux:2
 
-# Upgrades to the latest version of PIP
-RUN pip install --no-cache-dir --upgrade pip
+# Updates packages to latest version
+RUN yum update -y
 
-# As I'm pulling from the official image, will store in this path.
-# This script adds this directory to my PATH, so it will be the preferred Python version.
-ENV PATH /usr/local/bin:$PATH
+# Installs the jdk from amazon software repository
+# Should work with Spark https://hub.docker.com/layers/apache/spark/latest/images/sha256-a4a48089219912a8a87d7928541d576df00fc8d95f18a1509624e32b0e5c97d7?context=explore
+RUN echo 'yes' | amazon-linux-extras install java-openjdk11 
 
-# Resolves vulnerability with setuptools package
-RUN python -m pip install --upgrade setuptools
+# Print the version of java runtime env in CLI
+RUN java -version
 
-# Prints Python version in CLI
-RUN python --version
+# Installs python 3.8 from amazon software repository
+RUN echo 'yes' | amazon-linux-extras install python3.8
 
-# This CLI command will run a Python container
-CMD ["python"]
+# Priortises the path for python 3.8 over the version that comes with the base image (2.7)
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
+
+# Checks if pip is installed, installs if not, and upgrades to latest version
+RUN python -m ensurepip --upgrade
+
+# Prints the version of python and pip in CLI
+RUN python --version && python -m pip --version
+
+# Opens a shell. Not recommended for prod as this opens root dir... include test only
+CMD ["/bin/bash"]
